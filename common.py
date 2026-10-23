@@ -3,7 +3,7 @@ import logging
 import argparse
 import time
 import mutagen
-from mutagen.id3 import ID3, ID3NoHeaderError, TCON, COMM
+from mutagen.id3 import ID3, ID3NoHeaderError
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
@@ -48,7 +48,6 @@ def get_known_metadata(file_path):
     """
     metadata = {'artist': None,
                 'title': None,
-                'comments': None,
                 'album': None}
     try:
         # Load the file using mutagen
@@ -65,7 +64,6 @@ def get_known_metadata(file_path):
                 return metadata
             
             # Extract optional tag information.
-            comments = audiofile.get('COMM::eng', [None])[0]  # Extracting comments, assuming 'eng' for English
             genre = audiofile.get('TCON', [None])[0]
             album = audiofile.get('TALB', [None])[0]
 
@@ -96,16 +94,20 @@ def update_metadata_tag(file_path, tag_name, tag_info):
         logging.error(f"An error occurred while updating the genre: {e}")
 
 
-def process_file_album(sp, file_path):
+def fix_file(sp, file_path):
+    """ Fix up file's metadata information.
+
+    Gets the file's metadata information and if there is missing metadata information, searches for the correct information on Spotify, then updates it.
+    """
     known_file_metadata = get_known_metadata(file_path)
 
     if known_file_metadata['artist'] and known_file_metadata['title']:
-        # Attempt to find a album if not already tagged
+        # Attempt to find an album if not already tagged
         if not known_file_metadata['album']:
             new_album = get_track_metadata(sp, known_file_metadata['artist'], known_file_metadata['title'])['album'] 
 
-            # If a new album is found and it's different from 'Unknown'
-            if new_album != 'Unknown' and new_album != known_file_metadata['album']:
+            # If a new album is found and it's not 'Unknown'
+            if new_album and new_album != 'Unknown':
                 update_metadata_tag(file_path, 'album', new_album)
 
         else:

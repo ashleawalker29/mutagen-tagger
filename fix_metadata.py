@@ -40,10 +40,10 @@ def main():
                 file_path = os.path.join(expanded_path, filename)
                 logging.info('Found: ' + file_path)
                 
-                common.process_file_album(sp, file_path)
+                common.fix_file(sp, file_path)
 
     elif os.path.isfile(expanded_path) and expanded_path.endswith('.mp3'):
-        common.process_file_album(sp, expanded_path)
+        common.fix_file(sp, expanded_path)
     else:
         logging.error(f"The specified path does not exist or is not an MP3 file: {expanded_path}\n")
 
