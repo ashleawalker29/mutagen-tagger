@@ -6,11 +6,36 @@ import argparse
 
 # Import third-party packages
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 
 # Import from other files
 import secrets
 import common
+
+
+def fix_file(sp, file_path):
+    """ Fix up file's metadata information.
+
+    Gets the file's metadata information and if there is missing metadata information, searches for 
+    the correct information on Spotify, then updates it.
+    """
+    known_file_metadata = common.get_known_metadata(file_path)
+
+    if known_file_metadata['artist'] and known_file_metadata['title']:
+        # Attempt to find an album if not already tagged
+        if not known_file_metadata['album']:
+            new_album = common.get_track_metadata(sp, known_file_metadata['artist'], 
+            							   known_file_metadata['title'])['album'] 
+
+            # If a new album is found and it's not 'Unknown'
+            if new_album and new_album != 'Unknown':
+                common.update_metadata_tag(file_path, 'album', new_album)
+
+        else:
+            logging.warning(f"Album for {known_file_metadata['artist']} - " \
+            				"{known_file_metadata['title']} could not be determined or is " \
+            				"already set.\n")
+    else:
+        logging.warning("Either artist or title or both were not found in the file's metadata.\n")
 
 
 def main():
@@ -28,9 +53,9 @@ def main():
     # Set up Spotify API credentials using values from secrets.py
     client_id = secrets.CLIENT_ID
     client_secret = secrets.CLIENT_SECRET
-    client_credentials_manager = SpotifyClientCredentials(client_id=client_id, 
-    													  client_secret=client_secret)
-    sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+    client_creds_manager = spotipy.oauth2.SpotifyClientCredentials(client_id=client_id, 
+    													  		   client_secret=client_secret)
+    sp = spotipy.Spotify(client_credentials_manager=client_creds_manager)
 
     # Expand user-provided path
     expanded_path = os.path.expanduser(args.path)
@@ -40,12 +65,14 @@ def main():
                 file_path = os.path.join(expanded_path, filename)
                 logging.info('Found: ' + file_path)
                 
-                common.fix_file(sp, file_path)
+                fix_file(sp, file_path)
 
     elif os.path.isfile(expanded_path) and expanded_path.endswith('.mp3'):
-        common.fix_file(sp, expanded_path)
+        fix_file(sp, expanded_path)
     else:
         logging.error(f"The specified path does not exist or is not an MP3 file: {expanded_path}\n")
+
+
 
 if __name__ == "__main__":
     main()
