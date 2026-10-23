@@ -8,57 +8,37 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
 
-def get_genre(sp, artist, track):
-    """ Function to search Spotify for a track and return genre. """
+def get_track_metadata(sp, artist, track):
+    """ Search for a track's information based on its artist name and song name. 
+
+    Returns dictionary with track information.
+    """
+    # Initial metadata information. Everything is unknown at this stage.
+    metadata = {'album':'Unknown'}
+
     try:
         results = sp.search(q='artist:' + artist + ' track:' + track, type='track')
         items = results['tracks']['items']
-        if len(items) > 0:
+        if len(items):
             track_id = items[0]['id']
             track_info = sp.track(track_id)
-            artist_id = track_info['artists'][0]['id']
-            artist_info = sp.artist(artist_id)
-            genres = artist_info['genres']
 
-            logging.debug(f"Retrieved genres for {artist} - {track}: {genres}")
-            return genres[0] if genres else 'Unknown'  # Select the first genre or default to 'Unknown'
+            # Update metadata with album name
+            metadata['album'] = track_info['album']['name']
+            logging.debug(f'Retrieved album for {artist} - {track}: {metadata['album']}')
+
     except spotipy.exceptions.SpotifyException as e:
         if e.http_status == 429:
             retry_after = int(e.headers.get('Retry-After', 1))
-            logging.warning(f"Rate limiting, sleeping for {retry_after} seconds")
+            logging.warning(f'Rate limiting, sleeping for {retry_after} seconds')
             time.sleep(retry_after)
-            return get_genre(sp, artist, track)  
+            return get_track_metadata(sp, artist, track)  
         else:
-            logging.error(f"Spotify API error: {e}")
+            logging.error(f'Spotify API error: {e}')
     except Exception as e:
-        logging.error(f"Error during Spotify API call: {e}")
-    return 'Unknown'
+        logging.error(f'Error during Spotify API call: {e}')
 
-
-def get_album(sp, artist, track):
-    try:
-        results = sp.search(q='artist:' + artist + ' track:' + track, type='track')
-        items = results['tracks']['items']
-        if len(items) > 0:
-            track_id = items[0]['id']
-            track_info = sp.track(track_id)
-            artist_id = track_info['artists'][0]['id']
-            artist_info = sp.artist(artist_id)
-            album = track_info['album']['name']
-
-            logging.debug(f"Retrieved album for {artist} - {track}: {album}")
-            return album if album else 'Unknown'  # Select the first genre or default to 'Unknown'
-    except spotipy.exceptions.SpotifyException as e:
-        if e.http_status == 429:
-            retry_after = int(e.headers.get('Retry-After', 1))
-            logging.warning(f"Rate limiting, sleeping for {retry_after} seconds")
-            time.sleep(retry_after)
-            return get_album(sp, artist, track)  
-        else:
-            logging.error(f"Spotify API error: {e}")
-    except Exception as e:
-        logging.error(f"Error during Spotify API call: {e}")
-    return 'Unknown'
+    return metadata
 
 
 def extract_metadata(file_path):
@@ -161,7 +141,7 @@ def process_file_album(sp, file_path):
 
     if artist and title:
         # Attempt to find a album if not already tagged
-        new_album = get_album(sp, artist, title) if album is None else None
+        new_album = get_track_metadata(sp, artist, title)['album'] if album is None else None
 
         # If a new album is found and it's different from 'Unknown'
         if new_album and new_album != 'Unknown':
