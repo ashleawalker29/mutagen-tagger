@@ -3,9 +3,7 @@ import logging
 import argparse
 import time
 import mutagen
-from mutagen.id3 import ID3, ID3NoHeaderError
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 
 
 def get_track_metadata(sp, artist, track):
