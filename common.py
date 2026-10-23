@@ -102,38 +102,21 @@ def updateComments(file_path, new_album):
         logging.error(f"An error occurred while updating comments: {e}")
 
 
-def update_genre(file_path, genre):
+def update_metadata_tag(file_path, tag_name, tag_info):
     try:
         audiofile = mutagen.File(file_path, easy=True)
 
         if audiofile is not None:
-            # Update the genre using dictionary-style assignment
-            audiofile['genre'] = genre
+            # Update the given metadata tag using dictionary-style assignment
+            audiofile[tag_name] = tag_info
 
             # Save the changes
             audiofile.save()
-            logging.info(f"Genre updated to '{genre}' for {file_path}")
+            logging.info(f"{tag_name.capitalize()} tag updated to '{tag_info}' for {file_path}")
         else:
             logging.info(f"The file {file_path} is not an MP3 file or does not contain ID3 tags")
     except Exception as e:
         logging.error(f"An error occurred while updating the genre: {e}")
-
-
-def update_album(file_path, album):
-    try:
-        audiofile = mutagen.File(file_path, easy=True)
-
-        if audiofile is not None:
-            # Update the album using dictionary-style assignment
-            audiofile['album'] = album
-
-            # Save the changes
-            audiofile.save()
-            logging.info(f"Album updated to '{album}' for {file_path}")
-        else:
-            logging.info(f"The file {file_path} is not an MP3 file or does not contain ID3 tags")
-    except Exception as e:
-        logging.error(f"An error occurred while updating the album: {e}")
 
 
 def process_file_album(sp, file_path):
@@ -151,7 +134,7 @@ def process_file_album(sp, file_path):
             # Format the album comment and check if it's already in the comments
             album_comment = f"Album: {album}"
             if album_comment not in comments:
-                update_album(file_path, new_album)
+                update_metadata_tag(file_path, 'album', new_album)
                 # Append the new album to the comments if it's not already mentioned
                 new_comments = f"{comments} {album_comment}".strip()
                 updateComments(file_path, new_comments)
