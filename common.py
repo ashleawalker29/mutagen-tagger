@@ -90,25 +90,3 @@ def update_metadata_tag(file_path, tag_name, tag_info):
             logging.info(f"The file {file_path} is not an MP3 file or does not contain ID3 tags")
     except Exception as e:
         logging.error(f"An error occurred while updating the genre: {e}")
-
-
-def fix_file(sp, file_path):
-    """ Fix up file's metadata information.
-
-    Gets the file's metadata information and if there is missing metadata information, searches for the correct information on Spotify, then updates it.
-    """
-    known_file_metadata = get_known_metadata(file_path)
-
-    if known_file_metadata['artist'] and known_file_metadata['title']:
-        # Attempt to find an album if not already tagged
-        if not known_file_metadata['album']:
-            new_album = get_track_metadata(sp, known_file_metadata['artist'], known_file_metadata['title'])['album'] 
-
-            # If a new album is found and it's not 'Unknown'
-            if new_album and new_album != 'Unknown':
-                update_metadata_tag(file_path, 'album', new_album)
-
-        else:
-            logging.warning(f"Album for {known_file_metadata['artist']} - {known_file_metadata['title']} could not be determined or is already set.\n")
-    else:
-        logging.warning("Either artist or title or both were not found in the file's metadata.\n")
